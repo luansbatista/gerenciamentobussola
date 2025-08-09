@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, BookOpen, RefreshCw } from 'lucide-react'
+import { Loader2, BookOpen, RefreshCw, MessageSquare, BarChart2 } from 'lucide-react'
 import { getRandomQuestions, type QuestionFilters, getQuestionsTotalCount, generateMiniSimulation } from '@/app/actions/questions'
 import { recordQuestionAnswer } from '@/app/actions/question-answers'
 import { useToast } from '@/hooks/use-toast'
@@ -44,6 +44,8 @@ const [totalCount, setTotalCount] = useState<number>(0)
 const [simConfig, setSimConfig] = useState<{ [subject: string]: number }>({})
 const [generatingSim, setGeneratingSim] = useState(false)
 const [isSimOpen, setIsSimOpen] = useState(false)
+const [showComments, setShowComments] = useState(false)
+const [showStats, setShowStats] = useState(false)
 
 const fetchQuestions = async () => {
   setLoading(true)
@@ -95,6 +97,11 @@ const fetchQuestions = async () => {
 useEffect(() => {
   fetchQuestions()
 }, [selectedDisciplineId, selectedSubjectName, answeredFilter, correctnessFilter])
+
+useEffect(() => {
+  setShowComments(false)
+  setShowStats(false)
+}, [currentQuestionIndex])
 
 const currentQuestion = questions[currentQuestionIndex]
 
@@ -336,7 +343,7 @@ return (
               </CardContent>
             </Card>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               {!showAnswer ? (
                 <Button 
                   onClick={handleShowAnswer} 
@@ -353,54 +360,84 @@ return (
                   )}
                 </Button>
               ) : (
-                <Button onClick={handleNextQuestion}>
-                  Próxima Questão
-                </Button>
+                <Button onClick={handleNextQuestion}>Próxima Questão</Button>
               )}
+
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" className="flex items-center gap-2" onClick={() => setShowStats(v => !v)}>
+                  <BarChart2 className="h-4 w-4" /> Estatísticas
+                </Button>
+                <Button variant="ghost" className="flex items-center gap-2" onClick={() => setShowComments(v => !v)}>
+                  <MessageSquare className="h-4 w-4" /> Comentários
+                </Button>
+              </div>
             </div>
 
-            {/* Comentários da Questão */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Comentários</CardTitle>
-                <CardDescription>Compartilhe observações ou mnemônicos sobre esta questão.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Textarea
-                    placeholder="Escreva um comentário..."
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                  />
-                  <div className="flex justify-end">
-                    <Button onClick={handleAddComment} disabled={!commentText.trim()}>
-                      Enviar Comentário
-                    </Button>
-                  </div>
-
-                  <div className="mt-4">
-                    <ScrollArea className="h-48">
-                      <div className="space-y-3 pr-2">
-                        {loadingComments ? (
-                          <div className="text-sm text-gray-500">Carregando comentários...</div>
-                        ) : comments.length === 0 ? (
-                          <div className="text-sm text-gray-500">Sem comentários ainda.</div>
-                        ) : (
-                          comments.map((c) => (
-                            <CommentItem
-                              key={c.id}
-                              comment={c}
-                              onUpdated={async () => loadComments(currentQuestion!.id)}
-                              onDeleted={async () => loadComments(currentQuestion!.id)}
-                            />
-                          ))
-                        )}
+            {/* Estatísticas da Questão (placeholder, pode ligar ao backend depois) */}
+            {showStats && (
+              <Card className="border-dashed">
+                <CardHeader>
+                  <CardTitle className="text-base">Distribuição de respostas</CardTitle>
+                  <CardDescription>Como os usuários responderam esta questão (exemplo).</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    {currentQuestion.options.map((opt, idx) => (
+                      <div key={idx} className="flex items-center justify-between border rounded-md px-3 py-2">
+                        <div>{String.fromCharCode(65 + idx)}. {opt}</div>
+                        <div className="text-slate-600">—</div>
                       </div>
-                    </ScrollArea>
+                    ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="mt-2 text-xs text-slate-500">Em breve: barras indicando porcentagem e seu histórico de erro/acerto nesta questão.</div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Comentários da Questão */}
+            {showComments && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Comentários</CardTitle>
+                  <CardDescription>Compartilhe observações ou mnemônicos sobre esta questão.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <Textarea
+                      placeholder="Escreva um comentário..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                    />
+                    <div className="flex justify-end">
+                      <Button onClick={handleAddComment} disabled={!commentText.trim()}>
+                        Enviar Comentário
+                      </Button>
+                    </div>
+
+                    <div className="mt-4">
+                      <ScrollArea className="h-48">
+                        <div className="space-y-3 pr-2">
+                          {loadingComments ? (
+                            <div className="text-sm text-gray-500">Carregando comentários...</div>
+                          ) : comments.length === 0 ? (
+                            <div className="text-sm text-gray-500">Sem comentários ainda.</div>
+                          ) : (
+                            comments.map((c) => (
+                              <CommentItem
+                                key={c.id}
+                                comment={c}
+                                onUpdated={async () => loadComments(currentQuestion!.id)}
+                                onDeleted={async () => loadComments(currentQuestion!.id)}
+                              />
+                            ))
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
         {/* Modal Mini Simulado */}

@@ -12,6 +12,7 @@ import { createClient } from '@/utils/supabase/cliente'
 import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image' // Importar Image
 import { Users, Target, Award } from 'lucide-react' // Remover Shield
+import { useRouter } from 'next/navigation'
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -20,6 +21,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const { signIn, signUp } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,6 +32,12 @@ export function LoginForm() {
         title: "Login realizado com sucesso!",
         description: "Bem-vindo de volta ao Bússola da Aprovação.",
       })
+      try {
+        router.replace('/')
+      } catch {}
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
     } catch (error: any) {
       toast({
         title: "Erro no login",
@@ -83,7 +91,7 @@ export function LoginForm() {
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+        setLoading(false)
     }
   }
 

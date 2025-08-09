@@ -16,18 +16,33 @@ import { SimulationListPage } from './simulation-list-page' // Importa a nova p�
 import { AdminQuestionForm } from './admin-question-form' // Importa o formulário admin de questões
 import { AdminSimulationForm } from './admin-simulation-form' // Importa o formulário admin de simulados
 import { AdminDashboard } from './admin-dashboard' // Importa o dashboard administrativo
+import { AdminSubscriptionsPage } from './admin-subscriptions-page'
 import { PdfsPage } from './pdfs-page' // Importa a página de PDFs
 import { AdminPdfsPage } from './admin-pdfs-page' // Importa a página admin de PDFs
 import { SimulationsPage } from './simulations-page' // Importa a página de simulados
 import { AdminSimulationsPage } from './admin-simulations-page' // Importa a página admin de simulados
 
 import { ErrorBoundary } from './error-boundary'
+import { StudyToolsPage } from './study-tools'
+import { QuestionsAndSimulationsPage } from './questions-and-simulations'
 
 export function Dashboard() {
   const { user, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [todayLabel, setTodayLabel] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [errorShown, setErrorShown] = useState(false)
+
+  const getSafeMessage = (value: unknown): string => {
+    if (!value) return 'Erro de carregamento'
+    if (value instanceof Error) return value.message
+    if (typeof value === 'string') return value
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return 'Erro inesperado'
+    }
+  }
 
   useEffect(() => {
     try {
@@ -45,13 +60,19 @@ export function Dashboard() {
   // Tratamento de erro para evitar travamentos
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      console.error('Erro capturado:', event.error)
-      setError(event.error?.message || 'Erro desconhecido')
+      try { event.preventDefault?.() } catch {}
+      if (errorShown) return
+      setError(getSafeMessage(event.error || event.message))
+      setErrorShown(true)
     }
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('Promise rejeitada:', event.reason)
-      setError(event.reason?.message || 'Erro de carregamento')
+      try { event.preventDefault?.() } catch {}
+      if (errorShown) return
+      const reason = event.reason
+      const message = getSafeMessage(reason)
+      setError(message)
+      setErrorShown(true)
     }
 
     window.addEventListener('error', handleError)
@@ -61,7 +82,7 @@ export function Dashboard() {
       window.removeEventListener('error', handleError)
       window.removeEventListener('unhandledrejection', handleUnhandledRejection)
     }
-  }, [])
+  }, [errorShown])
 
   const renderContent = () => {
     try {
@@ -71,8 +92,8 @@ export function Dashboard() {
 
         case 'study':
           return <ErrorBoundary><StudyFormEnhanced /></ErrorBoundary>
-        case 'pomodoro':
-          return <ErrorBoundary><PomodoroTimer /></ErrorBoundary>
+        case 'study-tools':
+          return <ErrorBoundary><StudyToolsPage /></ErrorBoundary>
         case 'records':
           return <ErrorBoundary><StudyRecordsPage /></ErrorBoundary>
         case 'ranking':
@@ -84,15 +105,17 @@ export function Dashboard() {
         case 'settings':
           return <ErrorBoundary><SettingsPage /></ErrorBoundary>
         case 'question-bank': // NOVO: Caso para a página do banco de questões
-          return <ErrorBoundary><QuestionBankPage /></ErrorBoundary>
+          return <ErrorBoundary><QuestionsAndSimulationsPage /></ErrorBoundary>
         case 'simulations': // NOVO: Caso para a página de simulados
-          return <ErrorBoundary><SimulationsPage /></ErrorBoundary>
+          return <ErrorBoundary><QuestionsAndSimulationsPage /></ErrorBoundary>
         case 'admin-questions': // NOVO: Caso para o formulário admin de questões
           return <ErrorBoundary><AdminQuestionForm /></ErrorBoundary>
         case 'admin-simulations': // NOVO: Caso para admin de simulados
           return <ErrorBoundary><AdminSimulationsPage /></ErrorBoundary>
         case 'admin-dashboard': // NOVO: Caso para o dashboard administrativo
           return <ErrorBoundary><AdminDashboard /></ErrorBoundary>
+        case 'admin-subscriptions':
+          return <ErrorBoundary><AdminSubscriptionsPage /></ErrorBoundary>
         case 'pdfs': // NOVO: Caso para a página de PDFs
           return <ErrorBoundary><PdfsPage /></ErrorBoundary>
         case 'admin-pdfs': // NOVO: Caso para a página admin de PDFs
@@ -100,8 +123,8 @@ export function Dashboard() {
         default:
           return <ErrorBoundary><EntriesDashboard /></ErrorBoundary>
       }
-    } catch (error) {
-      console.error('Erro ao renderizar conteúdo:', error)
+    } catch (err) {
+      setError(getSafeMessage(err))
       return (
         <div className="text-center p-8">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
@@ -129,8 +152,8 @@ export function Dashboard() {
 
       case 'study':
         return 'Lançamento de Informações'
-      case 'pomodoro':
-        return 'Timer Pomodoro'
+      case 'study-tools':
+        return 'Ferramentas de Estudo'
       case 'records':
         return 'Meus Registros de Estudo'
       case 'ranking':
@@ -142,15 +165,17 @@ export function Dashboard() {
       case 'settings':
         return 'Configurações'
       case 'question-bank': // NOVO: Título para o banco de questões
-        return 'Banco de Questões'
+        return 'Questões, Simulados e Materiais'
       case 'simulations': // NOVO: Título para simulados
-        return 'Simulados PMBA'
+        return 'Questões, Simulados e Materiais'
       case 'admin-questions': // NOVO: Título para admin de questões
         return 'Gerenciar Questões'
       case 'admin-simulations': // NOVO: Título para admin de simulados
         return 'Gerenciar Simulados'
       case 'admin-dashboard': // NOVO: Título para dashboard administrativo
         return 'Dashboard Administrativo'
+      case 'admin-subscriptions':
+        return 'Gerenciar Assinaturas'
       case 'pdfs': // NOVO: Título para a página de PDFs
         return 'PDFs das Disciplinas'
       case 'admin-pdfs': // NOVO: Título para a página admin de PDFs
@@ -169,8 +194,8 @@ export function Dashboard() {
 
       case 'study':
         return 'Registre seus resultados e tempo de estudo por disciplina'
-      case 'pomodoro':
-        return 'Use a técnica Pomodoro para manter o foco nos estudos'
+      case 'study-tools':
+        return 'Revisões, Flashcards e Pomodoro em um só lugar'
       case 'records':
         return 'Visualize e exporte todas as suas sessões de estudo'
       case 'ranking':
@@ -182,15 +207,17 @@ export function Dashboard() {
       case 'settings':
         return 'Ajuste preferências da sua conta e do sistema'
       case 'question-bank': // NOVO: Descrição para o banco de questões
-        return 'Pratique questões de diversas disciplinas e assuntos'
+        return 'Pratique questões, acesse simulados e materiais de estudo por disciplina'
       case 'simulations': // NOVO: Descrição para simulados
-        return 'Acesse simulados organizados por disciplina'
+        return 'Pratique questões, acesse simulados e materiais de estudo por disciplina'
       case 'admin-questions': // NOVO: Descrição para admin de questões
         return 'Adicione e importe questões para o banco de dados'
       case 'admin-simulations': // NOVO: Descrição para admin de simulados
         return 'Adicione, edite e gerencie simulados do sistema'
       case 'admin-dashboard': // NOVO: Descrição para dashboard administrativo
         return 'Visão geral de todos os usuários e estatísticas do sistema'
+      case 'admin-subscriptions':
+        return 'Ative ou desative assinaturas de usuários por email'
       case 'pdfs': // NOVO: Descrição para a página de PDFs
         return 'Acesse materiais de estudo organizados por disciplina'
       case 'admin-pdfs': // NOVO: Descrição para a página admin de PDFs
@@ -226,6 +253,7 @@ export function Dashboard() {
             <button
               onClick={() => {
                 setError(null)
+                setErrorShown(false)
                 window.location.reload()
               }}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"

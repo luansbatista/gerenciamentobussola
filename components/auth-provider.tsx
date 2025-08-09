@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/cliente'
 import type { User } from '@supabase/supabase-js'
 
 interface AuthContextType {
-  user: (User & { is_admin?: boolean }) | null
+  user: (User & { is_admin?: boolean; is_subscribed?: boolean; plan?: 'monthly' | 'annual' | null }) | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, name: string) => Promise<void>
@@ -21,7 +21,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children, initialUser, initialIsAdmin }: AuthProviderProps) {
-  const [user, setUser] = useState<(User & { is_admin?: boolean }) | null>(
+  const [user, setUser] = useState<(User & { is_admin?: boolean; is_subscribed?: boolean; plan?: 'monthly' | 'annual' | null }) | null>(
     initialUser ? { ...initialUser, is_admin: initialIsAdmin } : null
   )
   const [loading, setLoading] = useState(false)
@@ -70,18 +70,18 @@ export function AuthProvider({ children, initialUser, initialIsAdmin }: AuthProv
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setLoading(true)
-          let currentUser: (User & { is_admin?: boolean }) | null = session?.user ?? null
+          let currentUser: (User & { is_admin?: boolean; is_subscribed?: boolean; plan?: 'monthly' | 'annual' | null }) | null = session?.user ?? null
           
           if (currentUser) {
             try {
               const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('is_admin')
+                .select('is_admin, is_subscribed, plan')
                 .eq('id', currentUser.id)
                 .single()
 
               if (!profileError && profile) {
-                currentUser = { ...currentUser, is_admin: profile.is_admin }
+                currentUser = { ...currentUser, is_admin: profile.is_admin, is_subscribed: profile.is_subscribed ?? false, plan: profile.plan ?? null }
               }
             } catch (error) {
               console.error('Erro ao buscar perfil:', error)
@@ -123,16 +123,16 @@ export function AuthProvider({ children, initialUser, initialIsAdmin }: AuthProv
         if (error) {
           console.error('Erro ao buscar sessão inicial (cliente):', error)
         }
-        let currentUser: (User & { is_admin?: boolean }) | null = session?.user ?? null
+        let currentUser: (User & { is_admin?: boolean; is_subscribed?: boolean; plan?: 'monthly' | 'annual' | null }) | null = session?.user ?? null
         if (currentUser) {
           try {
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
-              .select('is_admin')
+              .select('is_admin, is_subscribed, plan')
               .eq('id', currentUser.id)
               .single()
             if (!profileError && profile) {
-              currentUser = { ...currentUser, is_admin: profile.is_admin }
+              currentUser = { ...currentUser, is_admin: profile.is_admin, is_subscribed: profile.is_subscribed ?? false, plan: profile.plan ?? null }
             }
           } catch (profileErr) {
             console.error('Erro ao buscar perfil (bootstrap):', profileErr)
@@ -176,9 +176,8 @@ export function AuthProvider({ children, initialUser, initialIsAdmin }: AuthProv
         email,
         password,
         options: {
-          data: {
-            name,
-          },
+          data: { name },
+          emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}` : undefined,
         },
       })
       if (error) throw error
@@ -191,8 +190,19 @@ export function AuthProvider({ children, initialUser, initialIsAdmin }: AuthProv
     setLoading(true)
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      // encerra todas as sessões do usuário
+      // @ts-ignore - escopo opcional suportado pelo supabase-js
+      await supabase.auth.signOut({ scope: 'global' })
+      try {
+        if (typeof window !== 'undefined') {
+          // limpa chaves de sessão do supabase (sb-*)
+          Object.keys(window.localStorage || {}).forEach((k) => {
+            if (k.toLowerCase().startsWith('sb-')) {
+              window.localStorage.removeItem(k)
+            }
+          })
+        }
+      } catch {}
       setUser(null)
     } finally {
       setLoading(false)

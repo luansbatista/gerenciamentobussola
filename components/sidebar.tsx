@@ -37,35 +37,19 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     },
     {
       id: 'question-bank',
-      label: 'Banco de Questões',
+      label: 'Materiais de Estudo',
       icon: FileQuestion,
-      description: 'Pratique questões',
+      description: 'Acesse questões, simulados e PDFs',
       color: 'text-violet-500',
       priority: 3
     },
     {
-      id: 'simulations',
-      label: 'Simulados',
-      icon: FileText,
-      description: 'Faça simulados',
-      color: 'text-indigo-500',
-      priority: 4
-    },
-    {
-      id: 'flashcards',
-      label: 'Flashcards',
-      icon: BookText,
-      description: 'Crie e revise',
-      color: 'text-rose-500',
-      priority: 5
-    },
-    {
-      id: 'review',
-      label: 'Revisões',
+      id: 'study-tools',
+      label: 'Ferramentas de Estudo',
       icon: Repeat,
-      description: 'Assuntos para revisar',
+      description: 'Revisões, flashcards e pomodoro',
       color: 'text-amber-500',
-      priority: 6
+      priority: 4
     },
     {
       id: 'records',
@@ -73,7 +57,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       icon: List,
       description: 'Histórico de estudos',
       color: 'text-cyan-500',
-      priority: 7
+      priority: 6
     },
     {
       id: 'ranking',
@@ -81,23 +65,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       icon: Trophy,
       description: 'Compare seu desempenho',
       color: 'text-yellow-500',
-      priority: 8
-    },
-    {
-      id: 'pomodoro',
-      label: 'Pomodoro',
-      icon: Timer,
-      description: 'Timer de estudos',
-      color: 'text-orange-500',
-      priority: 9
-    },
-    {
-      id: 'pdfs',
-      label: 'PDFs',
-      icon: FileTextIcon,
-      description: 'Materiais de estudo',
-      color: 'text-red-500',
-      priority: 10
+      priority: 7
     },
     {
       id: 'settings',
@@ -105,7 +73,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       icon: Settings,
       description: 'Ajustes do sistema',
       color: 'text-slate-500',
-      priority: 11
+      priority: 9
     },
   ]
 
@@ -142,11 +110,28 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       color: 'text-rose-500',
       priority: 4
     },
+    {
+      id: 'admin-subscriptions',
+      label: 'Gerenciar Assinaturas',
+      icon: Shield,
+      description: 'Ativar/Desativar acesso de usuários',
+      color: 'text-emerald-500',
+      priority: 5
+    },
   ]
 
   const handleSignOut = async () => {
-    await signOut()
-    router.push('/') // Redireciona para a página inicial após o logout
+    try {
+      await signOut()
+    } catch (_) {
+      // ignorar
+    } finally {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/logout'
+      } else {
+        router.replace('/logout')
+      }
+    }
   }
 
   return (
